@@ -1,11 +1,9 @@
 use actix_web::{post, HttpResponse, Responder};
 use flate2::read::ZlibDecoder;
 use std::io::Read;
-use crate::models::{ChallengeRequest, ChallengeResponse, EncryptedMessage};
+use crate::{models::{WebhookEvent, ChallengeResponse, EncryptedMessage, MessageRequest}, constants::ENCRYPT_KEY, utils::decrypt_message, handlers::{send_message, message_handler}};
 use serde_json;
 use log::{info, error};
-
-use crate::utils::decrypt_message;
 
 #[post("/acceptMessage")]
 pub async fn receive_webhook(body: actix_web::web::Bytes) -> impl Responder {
@@ -29,7 +27,7 @@ pub async fn receive_webhook(body: actix_web::web::Bytes) -> impl Responder {
     };
 
     info!("encrypt body: {}", encrypted_message.encrypt);
-    let decrypted_message = match decrypt_message("f6KMba1woPml77", &encrypted_message.encrypt) {
+    let decrypted_message = match decrypt_message(ENCRYPT_KEY, &encrypted_message.encrypt) {
         Ok(decrypted) => decrypted,
         Err(e) => {
             error!("Failed to decrypt message: {}", e);
@@ -39,23 +37,42 @@ pub async fn receive_webhook(body: actix_web::web::Bytes) -> impl Responder {
     info!("Decrypted message: {}", decrypted_message);
 
     // Deserialize the JSON body
-    let challenge_request: ChallengeRequest = match serde_json::from_str(&decrypted_message) {
-        Ok(req) => req,
+    let webhook_event: WebhookEvent = match serde_json::from_str(&decrypted_message) {
+        Ok(event) => event,
         Err(e) => {
             error!("Invalid JSON: {}", e);
             return HttpResponse::BadRequest().body("Invalid JSON");
         },
     };
 
-    // Check if it's a challenge request and return the challenge
-    if challenge_request.d.channel_type == "WEBHOOK_CHALLENGE" {
-        let response = ChallengeResponse {
-            challenge: challenge_request.d.challenge,
-        };
-        info!("Sending response: {:?}", response);
-        HttpResponse::Ok().json(response)
+    if webhook_event.d.channel_type == "WEBHOOK_CHALLENGE" {
+        match webhook_event.d.challenge {
+            Some(challenge_data) => {
+                let response = ChallengeResponse {
+                    challenge: challenge_data,
+                };
+                info!("Sending response: {:?}", response);
+                return HttpResponse::Ok().json(response)
+            },
+            None => {
+                error!("Invalid request type");
+                return HttpResponse::InternalServerError().body("There is no challengeData");
+            },
+        }
     } else {
-        error!("Invalid request type");
-        HttpResponse::BadRequest().body("Invalid request type")
+        match message_handler(webhook_event).await {
+            Ok(response) => {
+                // Successful response
+                // Handle the response here
+                println!("Response: {:?}", response);
+                return HttpResponse::Ok().finish()
+            }
+            Err(error) => {
+                // Error occurred
+                // Handle the error here
+                println!("Error: {}", error);
+                return HttpResponse::InternalServerError().body("Failed to Send Message");
+            }
+        }
     }
 }

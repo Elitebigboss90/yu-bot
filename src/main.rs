@@ -2,6 +2,7 @@ mod routes;
 mod handlers;
 mod models;
 mod utils;
+mod constants;
 
 use actix_web::{HttpServer, App};
 use actix_rt;
