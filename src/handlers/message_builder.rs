@@ -10,6 +10,8 @@ use rand::Rng;
 fn print_random_quote() -> &'static str {
     let mut rng = rand::thread_rng();
     let quote = &QUOTES_D2[rng.gen_range(0..QUOTES_D2.len())];
+    let index = rng.gen_range(0..QUOTES_D2.len()); 
+    println!("index:{}", index);
     return quote.quote
 }
 
