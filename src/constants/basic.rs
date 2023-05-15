@@ -1,5 +1,9 @@
-pub const BASE_API_URL: &str = "https://www.kookapp.cn/api"; // Replace with your API URL
-pub const TOKEN: &str = "1/MTc0ODg=/WThflK8mKPfz9SutjCzbTw==";
-pub const VERIFY_TOKEN: &str = "lFQo6VlcECDGwLZ9";
-pub const ENCRYPT_KEY: &str = "f6KMba1woPml77";
-pub const BOT_ID: &str = "2508395858";
+use std::env;
+
+lazy_static! {
+    pub static ref BASE_API_URL: String = env::var("BASE_API_URL").unwrap();
+    pub static ref TOKEN: String = env::var("TOKEN").unwrap();
+    pub static ref VERIFY_TOKEN: String = env::var("VERIFY_TOKEN").unwrap();
+    pub static ref ENCRYPT_KEY: String = env::var("ENCRYPT_KEY").unwrap();
+    pub static ref BOT_ID: String = env::var("BOT_ID").unwrap();
+}

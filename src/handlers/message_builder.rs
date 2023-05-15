@@ -1,8 +1,8 @@
-use actix_web::{HttpResponse, web, error};
+use actix_web::{HttpResponse, web::{self, Data}, error};
 use reqwest::{Response};
 use log::{error};
-use crate::{constants::{BOT_ID, QUOTES_D2}, models::{WebhookEvent, MessageRequest}};
-use std::error::Error;
+use crate::{constants::{BOT_ID, QUOTES_D2}, models::{WebhookEvent, MessageRequest}, game::Game, database::GameDatabase};
+use std::{error::Error, sync::Arc};
 use rand::Rng;
 
 // Assuming CharacterQuote and QUOTES_D2 are defined and available here
@@ -36,10 +36,10 @@ async fn handlePvp(content: &str) {
     println!("Handling PVP: {}", content);
 }
 
-pub async fn message_handler(webhook_event: WebhookEvent) -> Result<HttpResponse, actix_web::Error> {
+pub async fn message_handler(webhook_event: WebhookEvent, database: web::Data<Arc<GameDatabase>>) -> Result<HttpResponse, actix_web::Error> {
     let content = &webhook_event.d.content;
     // Check if the content has the expected prefix
-    let prefix = "(met)".to_owned() + BOT_ID + "(met)";
+    let prefix = "(met)".to_owned() + &BOT_ID + "(met)";
     if !content.starts_with(&prefix) {
         return Ok(HttpResponse::NoContent().finish());
     }
@@ -69,6 +69,9 @@ pub async fn message_handler(webhook_event: WebhookEvent) -> Result<HttpResponse
                 return Err(error::ErrorInternalServerError(error));
             }
         }
+    } else if content.starts_with(" /pvp") {
+        let database = database.clone();
+        let game = Game::new(database);
     }
 
     return Ok(HttpResponse::NoContent().finish())

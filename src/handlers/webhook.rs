@@ -1,12 +1,12 @@
-use actix_web::{post, HttpResponse, Responder};
+use actix_web::{post, HttpResponse, Responder, web};
 use flate2::read::ZlibDecoder;
-use std::io::Read;
-use crate::{models::{WebhookEvent, ChallengeResponse, EncryptedMessage, MessageRequest}, constants::ENCRYPT_KEY, utils::decrypt_message, handlers::{send_message, message_handler}};
+use std::{io::Read, sync::Arc};
+use crate::{models::{WebhookEvent, ChallengeResponse, EncryptedMessage}, constants::ENCRYPT_KEY, utils::decrypt_message, handlers::{send_message, message_handler}, database::GameDatabase};
 use serde_json;
 use log::{info, error};
 
 #[post("/acceptMessage")]
-pub async fn receive_webhook(body: actix_web::web::Bytes) -> impl Responder {
+pub async fn receive_webhook(game_database: web::Data<Arc<GameDatabase>>, body: actix_web::web::Bytes) -> impl Responder {
     // Decompress the body using zlib
     let mut decoder = ZlibDecoder::new(&body[..]);
     let mut decompressed_body = String::new();
@@ -27,7 +27,7 @@ pub async fn receive_webhook(body: actix_web::web::Bytes) -> impl Responder {
     };
 
     info!("encrypt body: {}", encrypted_message.encrypt);
-    let decrypted_message = match decrypt_message(ENCRYPT_KEY, &encrypted_message.encrypt) {
+    let decrypted_message = match decrypt_message(&ENCRYPT_KEY, &encrypted_message.encrypt) {
         Ok(decrypted) => decrypted,
         Err(e) => {
             error!("Failed to decrypt message: {}", e);
@@ -60,7 +60,7 @@ pub async fn receive_webhook(body: actix_web::web::Bytes) -> impl Responder {
             },
         }
     } else {
-        match message_handler(webhook_event).await {
+        match message_handler(webhook_event, game_database).await {
             Ok(response) => {
                 // Successful response
                 // Handle the response here
