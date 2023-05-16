@@ -1,6 +1,11 @@
+use log::info;
 use mongodb::{options::ClientOptions, Client, Collection};
-use mongodb::bson::{doc, Bson, to_bson, Document};
+use mongodb::bson::{doc, Bson, to_bson, Document, from_document, from_bson};
 use std::env;
+// don't forget this!
+use futures::stream::StreamExt;
+use mongodb::error::Error;
+
 
 
 use crate::constants::{weapon_d2, armor_d2};
@@ -104,9 +109,30 @@ impl GameDatabase {
         }
     }
 
+    pub async fn get_all_users_except(&self, user_id: &str) -> Result<Vec<User>, Error> {
+        let filter = doc! {
+            "user_id": {
+                "$ne": user_id
+            }
+        };
+        let mut cursor = self.users.find(filter, None).await?;
+    
+        let mut users = Vec::new();
+        while let Some(result) = cursor.next().await {
+            let document = result?;
+            users.push(document);
+        }
+    
+        Ok(users)
+    }
+
     pub async fn register_user(&self, user: User) -> Result<mongodb::results::InsertOneResult, anyhow::Error> {
         // Convert the User object into a MongoDB document    
         self.users.insert_one(&user, None).await
             .map_err(|err| anyhow::anyhow!("Failed to insert user: {}", err))
+    }
+    
+    pub fn test_database(&self) {
+        info!("test databse")
     }
 }

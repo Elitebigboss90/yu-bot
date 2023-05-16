@@ -5,8 +5,7 @@ use crate::{models::{WebhookEvent, ChallengeResponse, EncryptedMessage}, constan
 use serde_json;
 use log::{info, error};
 
-#[post("/acceptMessage")]
-pub async fn receive_webhook(game_database: web::Data<Arc<GameDatabase>>, body: actix_web::web::Bytes) -> impl Responder {
+pub async fn receive_webhook(body: actix_web::web::Bytes, game_database: web::Data<Arc<GameDatabase>>) -> impl Responder {
     // Decompress the body using zlib
     let mut decoder = ZlibDecoder::new(&body[..]);
     let mut decompressed_body = String::new();

@@ -15,19 +15,20 @@ use actix_web::{HttpServer, App, web};
 use actix_rt;
 use database::GameDatabase;
 use env_logger::Env;
+use log::info;
 
 #[actix_rt::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let game_database = Arc::new(GameDatabase::new().await?);
+    env_logger::Builder::from_env(Env::default().default_filter_or("debug")).init();
 
+    let game_database = Arc::new(GameDatabase::new().await?);
+    info!("game_database inited");
     // Initialize weapons and armors
     game_database.initialize_weapons_and_armors().await?;
-
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
-    
+    info!("initialize_weapons_and_armors inited");
     HttpServer::new(move || {
         App::new()
-            .app_data(game_database.clone())  // again, clone the Arc
+            .app_data(web::Data::new(game_database.clone()))  // again, clone the Arc
             .configure(routes::config)
     })
     .bind("127.0.0.1:8000")?

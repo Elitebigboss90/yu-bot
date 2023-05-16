@@ -55,20 +55,23 @@ impl Game {
         };
 
         self.database.register_user(user).await?;
-
+        
         Ok(())
     }
 
-    pub async fn pvp(&self, user_id: &str, opponent_id: &str) -> Result<()> {
+    pub async fn pvp(&self, user_id: &str) -> Result<()> {
         let mut user = match self.database.find_user(user_id).await? {
             Some(user) => user,
             None => return Err(anyhow::anyhow!("User does not exist.")),
         };
-    
-        let mut opponent = match self.database.find_user(opponent_id).await? {
-            Some(opponent) => opponent,
-            None => return Err(anyhow::anyhow!("Opponent does not exist.")),
-        };
+
+        let opponent_list = self.database.get_all_users_except(user_id).await?;
+        if opponent_list.is_empty() {
+            return Err(anyhow!("No opponents available."));
+        }
+
+        let mut rng = rand::thread_rng();
+        let mut opponent = opponent_list[rng.gen_range(0..opponent_list.len())].clone();
     
         // Calculate the power levels
         let user_power = user.weapon.power_level + user.armor.power_level;
