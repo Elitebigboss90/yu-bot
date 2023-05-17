@@ -51,10 +51,17 @@ pub struct EventBody {
     pub extra: Option<MessageExtra>,
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum ExtraType {
+    Int(i32),
+    Str(String),
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MessageExtra {
     #[serde(rename = "type")]
-    pub msg_type: i32, // Assuming "type" is a reserved keyword, so I use msg_type instead
+    pub msg_type: ExtraType, // Assuming "type" is a reserved keyword, so I use msg_type instead
     pub guild_id: String,
     pub channel_name: String,
     pub mention: Vec<String>,

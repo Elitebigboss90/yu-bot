@@ -43,6 +43,10 @@ pub async fn receive_webhook(body: actix_web::web::Bytes, game_database: web::Da
             return HttpResponse::BadRequest().body("Invalid JSON");
         },
     };
+    
+    if webhook_event.d.type_ == 255 {
+        return HttpResponse::Ok().finish()
+    }
 
     if webhook_event.d.channel_type == "WEBHOOK_CHALLENGE" {
         match webhook_event.d.challenge {
